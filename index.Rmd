@@ -1,5 +1,5 @@
 --- 
-title: "Poisonous"
+title: "Poisonous mushrooms"
 author: "Hongwei Zha"
 date: "`r Sys.Date()`"
 site: bookdown::bookdown_site
