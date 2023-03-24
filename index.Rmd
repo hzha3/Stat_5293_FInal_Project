@@ -15,4 +15,4 @@ The main goal would be predicting the box office of a new movie based on its IMD
 I am also interested in finding whether people prefer old movies or new released movies. For example, I can calculate the mean ratings of movies in each year and see how the trend looks like. 
 
 ## Models
-The first model that I intend to use will be the ordinary linear regression model. An issue would be that the underlying relationship is not linear. So I would implement generalized linear model with a Gamma distribution (or I can do some tests to see what kind of exponential distributions that box office is closet to) as the second and random forest as the third model. 
+The first model that I intend to use will be the ordinary linear regression model. An issue would be that the underlying relationship is not linear. So I would implement generalized linear model with a Gamma distribution (or I can do some tests to see what kind of exponential distributions that box office is closet to) as the second, decision tree as the third, and random forest as the fourth model. 
