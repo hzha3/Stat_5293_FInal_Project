@@ -1,0 +1,15 @@
+bookdown
+DataExplorer
+ggplot2
+ggrepel
+stringr
+skimr
+dplyr
+tidyverse
+tibble
+tidyr
+readr
+purrr
+forcats
+knitr
+ggthemes

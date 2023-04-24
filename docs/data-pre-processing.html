@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+<head>
+
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>Chapter 2 Data pre-processing | Movie Box Office</title>
+  <meta name="description" content="Chapter 2 Data pre-processing | Movie Box Office" />
+  <meta name="generator" content="bookdown 0.33 and GitBook 2.6.7" />
+
+  <meta property="og:title" content="Chapter 2 Data pre-processing | Movie Box Office" />
+  <meta property="og:type" content="book" />
+  
+  
+  
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Chapter 2 Data pre-processing | Movie Box Office" />
+  
+  
+  
+
+<meta name="author" content="Hongwei Zha" />
+
+
+<meta name="date" content="2023-04-23" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  
+  
+<link rel="prev" href="index.html"/>
+<link rel="next" href="linear-regression.html"/>
+<script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@6.4.6/dist/fuse.min.js"></script>
+<link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-table.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-bookdown.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-highlight.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-search.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-fontsettings.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-clipboard.css" rel="stylesheet" />
+
+
+
+
+
+
+
+
+<link href="libs/anchor-sections-1.1.0/anchor-sections.css" rel="stylesheet" />
+<link href="libs/anchor-sections-1.1.0/anchor-sections-hash.css" rel="stylesheet" />
+<script src="libs/anchor-sections-1.1.0/anchor-sections.js"></script>
+
+
+
+
+<link rel="stylesheet" href="style.css" type="text/css" />
+</head>
+
+<body>
+
+
+
+  <div class="book without-animation with-summary font-size-2 font-family-1" data-basepath=".">
+
+    <div class="book-summary">
+      <nav role="navigation">
+
+<ul class="summary">
+<li><a href="./">IMDB</a></li>
+
+<li class="divider"></li>
+<li class="chapter" data-level="1" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i><b>1</b> Proposal</a>
+<ul>
+<li class="chapter" data-level="1.1" data-path="index.html"><a href="index.html#data"><i class="fa fa-check"></i><b>1.1</b> Data</a></li>
+<li class="chapter" data-level="1.2" data-path="index.html"><a href="index.html#modeling-goal"><i class="fa fa-check"></i><b>1.2</b> Modeling Goal</a></li>
+<li class="chapter" data-level="1.3" data-path="index.html"><a href="index.html#models"><i class="fa fa-check"></i><b>1.3</b> Models</a></li>
+</ul></li>
+<li class="chapter" data-level="2" data-path="data-pre-processing.html"><a href="data-pre-processing.html"><i class="fa fa-check"></i><b>2</b> Data pre-processing</a>
+<ul>
+<li class="chapter" data-level="2.1" data-path="data-pre-processing.html"><a href="data-pre-processing.html#data-dictionary"><i class="fa fa-check"></i><b>2.1</b> Data Dictionary</a></li>
+<li class="chapter" data-level="2.2" data-path="data-pre-processing.html"><a href="data-pre-processing.html#data-summary"><i class="fa fa-check"></i><b>2.2</b> Data Summary</a>
+<ul>
+<li class="chapter" data-level="2.2.1" data-path="data-pre-processing.html"><a href="data-pre-processing.html#data-statistics"><i class="fa fa-check"></i><b>2.2.1</b> Data Statistics</a></li>
+<li class="chapter" data-level="2.2.2" data-path="data-pre-processing.html"><a href="data-pre-processing.html#visualizing-missing-values"><i class="fa fa-check"></i><b>2.2.2</b> Visualizing Missing Values</a></li>
+</ul></li>
+<li class="chapter" data-level="2.3" data-path="data-pre-processing.html"><a href="data-pre-processing.html#box-office-vs-genre"><i class="fa fa-check"></i><b>2.3</b> Box Office Vs Genre</a></li>
+<li class="chapter" data-level="2.4" data-path="data-pre-processing.html"><a href="data-pre-processing.html#box-office-vs-rating-certificate"><i class="fa fa-check"></i><b>2.4</b> Box Office Vs Rating &amp; Certificate</a></li>
+</ul></li>
+<li class="chapter" data-level="3" data-path="linear-regression.html"><a href="linear-regression.html"><i class="fa fa-check"></i><b>3</b> Linear Regression</a>
+<ul>
+<li class="chapter" data-level="3.1" data-path="linear-regression.html"><a href="linear-regression.html#fit-model"><i class="fa fa-check"></i><b>3.1</b> Fit Model</a>
+<ul>
+<li class="chapter" data-level="3.1.1" data-path="linear-regression.html"><a href="linear-regression.html#model-summary"><i class="fa fa-check"></i><b>3.1.1</b> Model Summary</a></li>
+<li class="chapter" data-level="3.1.2" data-path="linear-regression.html"><a href="linear-regression.html#check-linearity"><i class="fa fa-check"></i><b>3.1.2</b> Check Linearity</a></li>
+</ul></li>
+<li class="chapter" data-level="3.2" data-path="linear-regression.html"><a href="linear-regression.html#partial-dependence-plot"><i class="fa fa-check"></i><b>3.2</b> Partial Dependence Plot</a></li>
+<li class="chapter" data-level="3.3" data-path="linear-regression.html"><a href="linear-regression.html#local-interpretable-modelagnostic-explanations-lime"><i class="fa fa-check"></i><b>3.3</b> Local Interpretable Modelagnostic Explanations (LIME)</a>
+<ul>
+<li class="chapter" data-level="3.3.1" data-path="linear-regression.html"><a href="linear-regression.html#gower-distance"><i class="fa fa-check"></i><b>3.3.1</b> Gower Distance</a></li>
+</ul></li>
+</ul></li>
+<li class="chapter" data-level="4" data-path="model-2.html"><a href="model-2.html"><i class="fa fa-check"></i><b>4</b> [Model 2]</a></li>
+<li class="chapter" data-level="5" data-path="model-3.html"><a href="model-3.html"><i class="fa fa-check"></i><b>5</b> [Model 3]</a></li>
+<li class="chapter" data-level="6" data-path="reflections.html"><a href="reflections.html"><i class="fa fa-check"></i><b>6</b> Reflections</a></li>
+<li class="divider"></li>
+<li><a href="https://github.com/rstudio/bookdown" target="blank">Published with bookdown</a></li>
+</ul>
+
+      </nav>
+    </div>
+
+    <div class="book-body">
+      <div class="body-inner">
+        <div class="book-header" role="navigation">
+          <h1>
+            <i class="fa fa-circle-o-notch fa-spin"></i><a href="./">Movie Box Office</a>
+          </h1>
+        </div>
+
+        <div class="page-wrapper" tabindex="-1" role="main">
+          <div class="page-inner">
+
+            <section class="normal" id="section-">
+<div id="data-pre-processing" class="section level1 hasAnchor" number="2">
+<h1><span class="header-section-number">Chapter 2</span> Data pre-processing<a href="data-pre-processing.html#data-pre-processing" class="anchor-section" aria-label="Anchor link to header"></a></h1>
+<div id="data-dictionary" class="section level2 hasAnchor" number="2.1">
+<h2><span class="header-section-number">2.1</span> Data Dictionary<a href="data-pre-processing.html#data-dictionary" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p><code>movie_id</code> – IMDB Movie ID<br />
+<code>movie_name</code> – Name of the movie<br />
+<code>year</code> - Release year<br />
+<code>certificate</code> – Certificate of the movie<br />
+<code>run_time</code> – Total movie run time<br />
+<code>genre</code> – Genre of the movie<br />
+<code>rating</code> – Rating of the movie<br />
+<code>description</code> – Description of the movie<br />
+<code>director</code> – Director of the movie<br />
+<code>director_id</code> – IMDB id of the director<br />
+<code>star</code> – Star of the movie<br />
+<code>star_id</code> – IMDB id of the star<br />
+<code>votes</code> – Number of votes in IMDB website<br />
+<code>gross</code> – Gross Box Office of the movie</p>
+</div>
+<div id="data-summary" class="section level2 hasAnchor" number="2.2">
+<h2><span class="header-section-number">2.2</span> Data Summary<a href="data-pre-processing.html#data-summary" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<div id="data-statistics" class="section level3 hasAnchor" number="2.2.1">
+<h3><span class="header-section-number">2.2.1</span> Data Statistics<a href="data-pre-processing.html#data-statistics" class="anchor-section" aria-label="Anchor link to header"></a></h3>
+<pre><code>## &#39;data.frame&#39;:    318269 obs. of  8 variables:
+##  $ year       : chr  &quot;2022&quot; &quot;2022&quot; &quot;2023&quot; &quot;2022&quot; ...
+##  $ certificate: chr  &quot;PG-13&quot; &quot;PG-13&quot; &quot;R&quot; &quot;R&quot; ...
+##  $ runtime    : chr  &quot;161 min&quot; &quot;192 min&quot; &quot;107 min&quot; &quot;139 min&quot; ...
+##  $ genre      : chr  &quot;Action, Adventure, Drama&quot; &quot;Action, Adventure, Fantasy&quot; &quot;Action, Thriller&quot; &quot;Action, Adventure, Comedy&quot; ...
+##  $ rating     : chr  &quot;6,9&quot; &quot;7,8&quot; &quot;6,5&quot; &quot;8&quot; ...
+##  $ director   : chr  &quot;Ryan Coogler&quot; &quot;James Cameron&quot; &quot;Jean-Fran?ois Richet&quot; &quot;Dan Kwan, \nDaniel Scheinert&quot; ...
+##  $ star       : chr  &quot;Letitia Wright, \nLupita Nyong&#39;o, \nDanai Gurira, \nWinston Duke&quot; &quot;Sam Worthington, \nZoe Saldana, \nSigourney Weaver, \nStephen Lang&quot; &quot;Gerard Butler, \nMike Colter, \nTony Goldwyn, \nYoson An&quot; &quot;Michelle Yeoh, \nStephanie Hsu, \nJamie Lee Curtis, \nKe Huy Quan&quot; ...
+##  $ gross      : int  NA NA NA NA NA NA NA NA NA NA ...</code></pre>
+<p>As we can note that some variables’ data type does not match our expectation, such as <code>rating</code> should be integer type and <code>certificate</code> should be categorical type. We will fix this by assigning appropriate data type manually. Another noteworthy point is that there are many NA values in <code>gross(in $)</code> variable, which is our response variable. Hence, I decide to visualize the missing rate for each column in my dataset and see if trimming the dataset is needed.</p>
+</div>
+<div id="visualizing-missing-values" class="section level3 hasAnchor" number="2.2.2">
+<h3><span class="header-section-number">2.2.2</span> Visualizing Missing Values<a href="data-pre-processing.html#visualizing-missing-values" class="anchor-section" aria-label="Anchor link to header"></a></h3>
+<div class="figure">
+<img src="finalproj_files/figure-html/Missing%20Plot-1.png" alt="Histogram of `Sepal.Width`" width="672" />
+<p class="caption">
+(#fig:Missing Plot)Histogram of <code>Sepal.Width</code>
+</p>
+</div>
+<p>Figure<br />
+@ref(fig:Missing Plot)
+shows The missing values in <code>gross</code> variable counts for 93.38% proportion, which is so large. Considering the total number of rows the original dataset has, we still have enough observations to fit models even after deleting those missing values.</p>
+</div>
+</div>
+<div id="box-office-vs-genre" class="section level2 hasAnchor" number="2.3">
+<h2><span class="header-section-number">2.3</span> Box Office Vs Genre<a href="data-pre-processing.html#box-office-vs-genre" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p><img src="finalproj_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<p>We want to see how box office is distributed for different genres. From the plot, it seems that the distribution does not vary a lot from genre to genre. This might indicate that genre is not a good estimator. We will verify this later on in fitting model part.</p>
+</div>
+<div id="box-office-vs-rating-certificate" class="section level2 hasAnchor" number="2.4">
+<h2><span class="header-section-number">2.4</span> Box Office Vs Rating &amp; Certificate<a href="data-pre-processing.html#box-office-vs-rating-certificate" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<pre><code>##         Var1 Freq
+## 16         R 8315
+## 15     PG-13 4087
+## 14        PG 3493
+## 12 Not Rated 2072
+## 7          G  940
+## 1             809
+## 6   Approved  347
+## 13    Passed  329
+## 22   Unrated  304
+## 19     TV-MA   69
+## 17     TV-14   57
+## 8         GP   55
+## 20     TV-PG   43
+## 4        18+   29
+## 11     NC-17   19
+## 23         X   17
+## 18      TV-G   14
+## 9          M   13
+## 10      M/PG   11
+## 21     TV-Y7    5
+## 2        13+    4
+## 3        16+    1
+## 5         AO    1</code></pre>
+<p>This table shows the number of movies of each certificate. For certificate with count less than 1000, we group them as <code>other</code> type.</p>
+<p><img src="finalproj_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+<p>We also visualized the relationship between <code>gross</code> and <code>rating</code>. From the plot, linearity seems to be insufficient to explain the relationship between <code>gross</code> and <code>rating</code>. Also note that for movies with the same rating score, PG and PG-13 movies tend to have more box office while Not Rated movies tend to have less box office.</p>
+
+</div>
+</div>
+            </section>
+
+          </div>
+        </div>
+      </div>
+<a href="index.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+<a href="linear-regression.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
+    </div>
+  </div>
+<script src="libs/gitbook-2.6.7/js/app.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/clipboard.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-search.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-sharing.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-fontsettings.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-bookdown.js"></script>
+<script src="libs/gitbook-2.6.7/js/jquery.highlight.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-clipboard.js"></script>
+<script>
+gitbook.require(["gitbook"], function(gitbook) {
+gitbook.start({
+"sharing": {
+"github": false,
+"facebook": true,
+"twitter": true,
+"linkedin": false,
+"weibo": false,
+"instapaper": false,
+"vk": false,
+"whatsapp": false,
+"all": ["facebook", "twitter", "linkedin", "weibo", "instapaper"]
+},
+"fontsettings": {
+"theme": "white",
+"family": "sans",
+"size": 2
+},
+"edit": {
+"link": "https://github.com/hzha3/Stat_5293_FInal_Project/edit/main/data_processing.Rmd",
+"text": "Edit"
+},
+"history": {
+"link": null,
+"text": null
+},
+"view": {
+"link": "https://github.com/hzha3/Stat_5293_FInal_Project/blob/main/data_processing.Rmd",
+"text": null
+},
+"download": null,
+"search": {
+"engine": "fuse",
+"options": null
+},
+"toc": {
+"collapse": "subsection"
+}
+});
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    var src = "true";
+    if (src === "" || src === "true") src = "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/latest.js?config=TeX-MML-AM_CHTML";
+    if (location.protocol !== "file:")
+      if (/^https?:/.test(src))
+        src = src.replace(/^https?:/, '');
+    script.src = src;
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+</body>
+
+</html>

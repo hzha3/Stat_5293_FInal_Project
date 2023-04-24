@@ -1,0 +1,177 @@
+# Data pre-processing
+
+```{r}
+library(DataExplorer)
+library(ggrepel)
+library(stringr)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+```
+
+```{r}
+action = read.csv("C:/Users/zha/Desktop/action.csv", sep = ";")
+adventure = read.csv("C:/Users/zha/Desktop/adventure.csv", sep = ";")
+animation = read.csv("C:/Users/zha/Desktop/animation.csv", sep = ";")
+crime = read.csv("C:/Users/zha/Desktop/crime.csv", sep = ";")
+family = read.csv("C:/Users/zha/Desktop/family.csv", sep = ";")
+fantasy = read.csv("C:/Users/zha/Desktop/fantasy.csv", sep = ";")
+horror = read.csv("C:/Users/zha/Desktop/horror.csv", sep = ";")
+romance = read.csv("C:/Users/zha/Desktop/romance.csv", sep = ";")
+thriller = read.csv("C:/Users/zha/Desktop/thriller.csv", sep = ";")
+mystery = read.csv("C:/Users/zha/Desktop/mystery.csv", sep = ";")
+movie = rbind(action, adventure, animation, crime, family, fantasy, horror, romance, thriller, mystery)
+```
+
+## Data Dictionary
+
+`movie_id` -- IMDB Movie ID  
+`movie_name` -- Name of the movie  
+`year` - Release year  
+`certificate` -- Certificate of the movie  
+`run_time` -- Total movie run time  
+`genre` -- Genre of the movie  
+`rating` -- Rating of the movie  
+`description` -- Description of the movie  
+`director` -- Director of the movie  
+`director_id` -- IMDB id of the director  
+`star` -- Star of the movie  
+`star_id` -- IMDB id of the star  
+`votes` -- Number of votes in IMDB website  
+`gross` -- Gross Box Office of the movie
+
+## Data Summary
+
+### Data Statistics
+```{r}
+movie = movie[,c('year','certificate','runtime','genre','rating','director','star','gross')]
+str(movie)
+
+movie$year = factor(as.numeric(movie$year))
+
+movie$rating =  str_replace(movie$rating, ",", ".")
+movie$rating = as.numeric(movie$rating)
+
+movie$gross = movie$gross / 1000000
+```
+
+As we can note that some variables' data type does not match our expectation, such as `rating` should be integer type and  `certificate` should be categorical type. We will fix this by assigning appropriate data type manually. Another noteworthy point is that there are many NA values in `gross(in $)` variable, which is our response variable. Hence, I decide to visualize the missing rate for each column in my dataset and see if trimming the dataset is needed. 
+
+### Visualizing Missing Values
+
+```{r Missing Plot, fig.cap = "Histogram of `Sepal.Width`"}
+# From: https://www.kaggle.com/code/desalegngeb/auctioning-used-cars-what-matters-most/notebook
+options(repr.plot.width = 12, repr.plot.height = 8)
+plot_missing(
+  movie,
+  group = list(Good = 0.002, Bad = 1),
+  missing_only = FALSE, 
+  geom_label_args = list(),
+  title = 'Missing values in each column',
+  theme_config = list(legend.position = c("top"))
+)
+```
+
+Figure  
+\@ref(fig:Missing Plot)
+  shows The missing values in `gross` variable counts for 93.38% proportion, which is so large. Considering the total number of rows the original dataset has, we still have enough observations to fit models even after deleting those missing values. 
+
+```{r}
+movie = na.omit(movie)
+```
+  
+```{r variable_processing}
+genre_list = c()
+for (genre in movie$genre){
+  genre = str_split_1(genre, ",")[1]
+  genre_list = append(genre_list,genre)
+}
+movie$genre = factor(genre_list)
+
+director_list = c()
+for (director in movie$director){
+  director = str_split_1(director, ",")[1]
+  director_list = append(director_list,director)
+}
+movie$director = director_list
+
+runtime_list = c()
+for (runtime in movie$runtime){
+  runtime = str_split_1(runtime, " ")[1]
+  runtime_list = append(runtime_list,runtime)
+}
+movie$runtime = as.numeric(runtime_list)
+
+actor1_list = c()
+actor2_list = c()
+actor3_list = c()
+for (actors in movie$star){
+  actor1 = str_split_1(actors, ",")[1]
+  actor1_list = append(actor1_list,actor1)
+  actor2 = str_split_1(actors, ",")[2]
+  actor2_list = append(actor2_list,actor2)
+  actor3 = str_split_1(actors, ",")[3]
+  actor3_list = append(actor3_list,actor3)
+}
+movie$actor1 = actor1_list
+movie$actor2 = actor2_list
+movie$actor3 = actor3_list
+
+movie = select(movie, -star)
+movie = na.omit(movie)
+rownames(movie) <- 1:nrow(movie) 
+```
+
+## Box Office Vs Genre
+
+```{r}
+df = movie |>
+  filter(genre == "Action" | genre == "Adventure" | genre == "Animation" | genre == "Comedy" | genre == "Crime"| genre == "Drama")
+ggplot(df, aes(x = gross))+ 
+        geom_histogram(fill='cornflowerblue')+
+        facet_wrap(~genre)+
+        labs(title ="Box Office distribution. ")+
+        xlab('gross in million')
+```
+
+We want to see how box office is distributed for different genres. From the plot, it seems that the distribution does not vary a lot from genre to genre. This might indicate that genre is not a good estimator. We will verify this later on in fitting model part. 
+
+## Box Office Vs Rating & Certificate
+
+```{r}
+df = data.frame(table(movie$certificate))
+df[order(df$Freq, decreasing = TRUE),]
+for (i in seq(1, length(movie$certificate))){
+  if (movie$certificate[i] != "R" & movie$certificate[i] != "PG-13" & movie$certificate[i] != "PG" & movie$certificate[i] != "Not Rated"){
+    movie$certificate[i] = "Other"
+  }
+}
+movie$certificate = factor(movie$certificate)
+```
+
+This table shows the number of movies of each certificate. For certificate with count less than 1000, we group them as `other` type. 
+
+```{r}
+ggplot(movie, aes(x = rating, y = gross))+ 
+        geom_point(aes(color=certificate))+
+        scale_color_viridis_d()+
+        geom_smooth(se = FALSE, color = "blue")+
+        geom_smooth(method = "lm", se = FALSE, color = "black")+
+        labs(title ="Scatter Plot of Movie Box Office Vs Rating and Certificate")+
+        ylab('gross in million')
+```
+
+We also visualized the relationship between `gross` and `rating`. From the plot, linearity seems to be insufficient to explain the relationship between `gross` and `rating`. Also note that for movies with the same rating score, PG and PG-13 movies tend to have more box office while Not Rated movies tend to have less box office.
+
+```{r}
+df = data.frame(table(movie$director))
+df = df[order(df$Freq, decreasing = TRUE),]
+colnames(df) = c('director', 'count')
+director_list = df$director[df$count >= 20] 
+#for (i in seq(1, length(movie$certificate))){
+#  if (movie$certificate[i] != "R" & movie$certificate[i] != "PG-13" & movie$certificate[i] != "PG" & movie$certificate[i] != "Not Rated"){
+#    movie$certificate[i] = "Other"
+ # }
+#}
+
+```
