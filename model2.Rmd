@@ -1,1 +1,190 @@
-# [Model 2]
+# Decision Tree
+
+```{r}
+library(rpart)
+library(rpart.plot)
+library(fastshap)
+```
+
+## Model Fitting
+
+## Model Visualization
+
+```{r}
+#From: https://www.statology.org/plot-decision-tree-in-r/#:~:text=In%20machine%20learning%2C%20a%20decision,plot%20package.
+tree = rpart(gross~year+certificate+runtime+genre+rating, data = train_dat, control=rpart.control(cp=0))
+best = tree$cptable[which.min(tree$cptable[,"xerror"]),"CP"]
+pruned_tree = prune(tree, cp=best)
+rpart.plot(pruned_tree, type = 0, fallen.leaves = FALSE)
+```
+The plot visualized our regression tree model. Since the size of the tree is so large, visualization does not work here. But we can find out each node's information and splitting rule by checking the summary information of tree model. 
+
+## Model Evaluation
+
+```{r}
+eval_recap(test_dat$gross, predict(pruned_tree, newdata = test_dat))
+```
+
+The evaluation table shows that regression tree model has much better performance than linear model no matter which criterion we use. Hence, in terms of accuracy, decision tree would be my choice. 
+
+## Model Interpretation
+
+### Partial Dependence Plot
+
+```{r}
+pdp_movie1 = pdp::partial(pruned_tree, pred.var = "rating", trim.outliers = TRUE)
+
+ggplot(pdp_movie1, aes(rating, yhat)) +
+  geom_line(lwd = 2)+
+  geom_rug(data = train_dat |> filter(rating < max(pdp_movie1$rating) & rating > min(pdp_movie1$rating)), aes(rating), inherit.aes = FALSE, alpha = .5, color = "black") +
+  #geom_smooth(data = movie |> filter(rating < max(pdp_movie1$rating) & rating > min(pdp_movie1$rating)), aes(rating, gross), se = FALSE) +
+  #geom_point(data = movie |> filter(rating < max(pdp_movie1$rating) & rating > min(pdp_movie1$rating)), aes(rating, gross), size = .75, color = "blue", alpha = .25)+
+  ylab("movie box office") +
+  theme_bw(16)
+```
+
+Comparing the PDP of `rating` by using tree model and linear model, we find that the overall trend is the same, i.e., as `rating` goes up, predicted movie box office rises. And one difference is that, instead of being a straight line in linear model, we can observe that the line in tree model has ups and downs. This might be explained by the intrinsic nature of linear model: the effect of each feature on response variable alone is also linear. But in tree model, this is not that case, the mean box office of movies with higher rate is not necessarily larger than the mean box office of movies with lower rate. And clearly, the latter is what we observed more often in reality. 
+More insights that we can derive from this plot is that as `rating` increases from 4 to 6, movie box office does not increase a lot. This is probably because for those movies, people would watch and rate them online, but are not willing to buy tickets to watch them in theater. Hence, they all tend to have few box office. As for why there is a huge jump for `rating` from 7.8 to 8.3, I find it hard to give a reasonable guess.
+
+```{r}
+pdp_movie2 = pdp::partial(pruned_tree, pred.var = "runtime",trim.outliers = TRUE)
+
+ggplot(pdp_movie2, aes(runtime, yhat)) +
+  geom_line(lwd = 2)+
+  geom_rug(data = train_dat |> filter(runtime < max(pdp_movie2$runtime) & runtime > min(pdp_movie2$runtime)), aes(runtime), inherit.aes = FALSE, alpha = .5, color = "black")+
+  #geom_smooth(data = movie |> filter(runtime < max(pdp_movie2$runtime) & runtime > min(pdp_movie2$runtime)), aes(runtime, gross), se = FALSE) +
+  #geom_point(data = movie |> filter(runtime < max(pdp_movie2$runtime) & runtime > min(pdp_movie2$runtime)), aes(runtime, gross), size = .75, color = "blue", alpha = .25)+
+  ylab("movie box office") +
+  theme_bw(16)
+```
+Again, the same part and difference between PDP of `runtime` by using tree model and linear model is similar to what we get at `rating` part: the overall trend is the same and we can get more insights from tree model. One more thing to notice is that, the range of movie box office in tree model for the two different features are not as much as it in linear model. This suggests that `rating` and `runtime` in tree model may contribute relatively equal explanations for variation in response variable.
+
+```{r}
+pdp_movie3 = pdp::partial(pruned_tree, pred.var = "certificate")
+
+ggplot(pdp_movie3, aes(fct_reorder(certificate, yhat, .desc = TRUE), yhat)) +
+  geom_col(fill = "cornflowerblue")+
+  ylab("movie box office") +
+  xlab("certificate")+
+  theme_bw(16)
+```
+The PDP of certificate in tree model shows that PG and PG-13 movies tend to have more box office while Not Rated movies tend to have less box office. This is similar to the results obtained from linear model.
+
+```{r}
+pdp_movie4 = pdp::partial(pruned_tree, pred.var = "genre")
+
+ggplot(pdp_movie4, aes(y = fct_reorder(genre, yhat, .desc = TRUE), x = yhat)) +
+  geom_col(fill = "cornflowerblue")+
+  xlab("movie box office") +
+  ylab("genre")+
+  theme_bw(16)
+```
+
+The PDP of genre in tree model shows that action, animation, and horror movies are top three most popular types while drama, biography, and romance are the three types with least audience. In general, this is consistent with the conclusion by using linear model. But note that, the difference between each genre in tree model are far less than the difference in linear model. This indicates that `genre` in tree model is not as much important as it is in linear model.
+
+### Local Interpretable Model-agnostic Explanations (LIME)
+
+```{r}
+tree2 = rpart(gross~year+certificate+runtime+genre+rating, data = train_dat2, control=rpart.control(cp=0))
+best = tree2$cptable[which.min(tree2$cptable[,"xerror"]),"CP"]
+pruned_tree2 = prune(tree2, cp=best)
+
+predict_model.rpart = function(x, newdata, ...) {
+  data.frame(predict(x, newdata = newdata))
+}
+
+model_type.rpart = function(x, ...) {
+  return("regression")
+}
+
+explainer = lime(train_dat2, pruned_tree2, bin_continuous = TRUE, quantile_bins = FALSE)
+explanation = lime::explain(test_dat2|>dplyr::select(-gross), explainer, n_features = 5)
+
+knitr::kable(explanation |> filter(case == "3649") |> dplyr::select(c("model_intercept","model_prediction","feature","feature_value","feature_weight","feature_desc","prediction")), digits = 3)
+
+plot_features(explanation)
+```
+
+From the explanation table, we have that the local model for case 3649 is  
+$\hat{y}_{lime} = -30.148 -17.620 \cdot \mathbf{1}_{3.27 < rating <= 5.25}+55.755 \cdot \mathbf{1}_{certificate = PG}+31.348 \cdot \mathbf{1}_{genre = Action}+51.782 \cdot \mathbf{1}_{runtime <= 232}+22.856 \cdot \mathbf{1}_{year = 1996}$ 
+By comparing this result with lime model get in linear model, we find that even the direction of the effect of some features changed. For example, $runtime\leq232$ has a negative contribution to prediction in linear part, but it has a positive contribution here. Another difference is that the feature weight also changed a lot, `certificate` in linear part only rank as third one but has the largest weight here. Since the specific algorithm used to generate the local model is not clear to me, I could not provide an explanation for those difference. So how original model affects the fit of local model is waiting for more research. 
+
+```{r}
+df = data.frame(cbind(test_dat2$gross-c(52.548,81.456,113.972,36.297), test_dat2$gross-c(32.434,208.019,8.625,1.427)))
+colnames(df) = c("lime error", "original error")
+df
+```
+
+The residual table shows that our tree model also outperforms the local model. This may support my guess about trade off between interpretability and accuracy. Also note that the error for each case in tree model is less than it in linear model. 
+
+#### Gower Distance
+
+```{r}
+tree3 = rpart(gross~year+certificate+runtime+genre+rating, data = train_dat3, control=rpart.control(cp=0))
+best = tree3$cptable[which.min(tree3$cptable[,"xerror"]),"CP"]
+pruned_tree3 = prune(tree3, cp=best)
+
+df = test_dat3 |>
+  cluster::daisy() |>
+  as.matrix() |>
+  as.data.frame() |>
+  rownames_to_column("obs1") |>
+  mutate(pred1 = predict(pruned_tree3, movie[obs1,])) |>
+  pivot_longer(-c(obs1, pred1), names_to = "obs2", values_to = "gower") |>
+  filter(obs1 < obs2) |> 
+  mutate(pred2 = predict(pruned_tree3, movie[obs2,])) |>
+  dplyr::select(obs1, obs2, gower, pred1, pred2) |>
+  mutate(diff = abs(pred2 - pred1)) |>
+  mutate(total = pred1 + pred2)
+
+ggplot(df, aes(gower, diff)) + geom_point(alpha = 0.8, size = 1) +
+  ggtitle("Difference in prediction vs. Gower distance")
+```
+From the plot, we still have that as Gower distance increases, the variance of difference between pairs increases. One major distinction from linear part is that for pairs at the same difference level (the Gower distance between the pair is same), tree model tend to make more variant predictions compared with linear model. In my opinion, I think this might be an advantage since considering the features we include, two movies defined as similar will just have common characteristics in terms of rate, run time, genre, certificate, and published year. But for movies in which even all of the above features are same, in real case, they still tend to have very different box office as many other factors could have impact on, such as season, published area, and published volume in cinema every day. 
+
+### Shapley Additive Explanations
+
+```{r}
+pred <- function(model, newdata) {
+  predict(model, newdata = newdata)
+}
+
+shap_values = fastshap::explain(
+  pruned_tree2, 
+  X = train_dat2,           
+  feature_names = colnames(train_dat |> dplyr::select(c("rating","runtime","certificate","genre","year"))),
+  pred_wrapper = pred, 
+  nsim = 5,
+  newdata = test_dat2
+)
+
+df = as.data.frame(shap_values) |>
+    mutate(pred = predict(pruned_tree2, test_dat2)) |>
+    mutate(case = c("6155","10","3649","4464"))|>
+    pivot_longer(-c(case, pred), names_to = "var", values_to = "shap_value")
+
+ggplot(df, aes(x = shap_value, y = reorder(var, abs(shap_value))))+
+  geom_col(aes(fill = case), position = "dodge")+
+  ylab("") +
+  theme_bw(12) +
+  theme(panel.grid.major.y = element_blank(), legend.position = "bottom")
+```
+From the SHAP plot, case 10 has the most prediction value, `runtime` and `rating` contribute majority of the difference between mean `gross` of the 4 cases and prediction of case 10. By checking the feature value of each case in our sample, we find that case 10 has the highest rate and longest run time.  
+On the other hand, case 4464 has the least prediction value, `year` is the main factor caused the low prediction. And we can see that case 4464 is the oldest movie which is published in 1973.  
+By compare the interpretation provided by SHAP and by LIME, they seems to be not consistent with each other in explanations for some features. Hence, the question is which one provide a more reasonable interpretation or it depends on situation and purpose. 
+
+### Feature Importance
+
+```{r}
+df = data.frame(pruned_tree$variable.importance)
+colnames(df) = "importance"
+df = df|>
+  rownames_to_column("feature")
+df$importance = df$importance / sum(df$importance)
+ggplot(df, aes(x = importance, y = fct_reorder(feature, importance, .desc = TRUE)))+
+  geom_col(fill = "cornflowerblue")+
+  labs(title = "Feature Importance Plot")+
+  ylab("feature")
+```
+The feature importance plot shows that `year` is the most important feature while `genre` is the least important feature. This seems to be consistent with result obtained from partial dependence plot.  
+When compared with feature importance in linear model, they are quiet different. `Year` in linear model is not as important as it is in tree model. My opinion is that the relationship between `year` and `gross` is not linear but will fluctuate, hence linear model could not capture the impact of `year`. But linear constraint is not a problem for tree model, hence tree model could utilize this feature well. 

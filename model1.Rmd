@@ -5,9 +5,10 @@ library(broom)
 library(pdp)
 library(dplyr)
 library(lime)
+library(relaimpo)
 ```
 
-## Fit Model
+## Model Fitting
 
 ### Model Summary
 ```{r}
@@ -38,9 +39,42 @@ ggplot(augmod, aes(.fitted, .resid)) +
 
 From the Residual Plot, we can observe that majority points are lying in a line with negative slope. This might indicate that our model will over-estimate certain types movies' box office and under-estimate some other types. That is, some common characteristics of data with high fitted value contributes a lot to its over all prediction and vice versa for data with low predicted value.  
 Also note that we have negative fitted value, which obviously
-does not make sense. By checking the dataset, we have not negative value in `gross` variable. This excludes that negative fitted values come from dataset. Hence, this is another factor supporting that a linear model might not be appropriate. 
+does not make sense in reality. By checking the dataset, we have no negative values in `gross` variable. This excludes the possibility that negative fitted values come from dataset. Hence, this is another factor supporting that a linear model might not be appropriate. 
 
-## Partial Dependence Plot
+## Model Evaluation
+
+```{r}
+mse_vec =  function(truth, estimate){
+  mean((truth-estimate)^2)
+}
+
+mae_vec = function(truth, estimate){
+  mean(abs(truth-estimate))
+}
+
+rsq_vec = function(truth, estimate){
+  1 - sum((truth-estimate)^2) /
+    sum((truth - mean(truth))^2)
+}
+
+eval_recap = function(truth, estimate){
+  df_new = data.frame(truth = truth,
+                       estimate = estimate)
+  
+  data.frame(MSE = mse_vec(truth, estimate),
+             MAE = mae_vec(truth, estimate),
+             "R-Squared" = rsq_vec(truth, estimate),
+             check.names = F
+             )
+}
+
+eval_recap(test_dat$gross, predict(lr, newdata = test_dat))
+```
+The evaluation table shows the MSE, MAE, and R-Squared value of our model on the test set. All of three criterion indicate that our model had a bad performance. Hence, from the aspect of accuracy, linear model should not be our target model. 
+
+## Model Interpretation
+
+### Partial Dependence Plot
 
 Next, we want to explore the marginal effect of `rating`, `runtime`, `certificate`, and `genre` on predicted value. 
 
@@ -68,7 +102,7 @@ ggplot(pdp_movie2, aes(runtime, yhat)) +
   theme_bw(16)
 ```
 
-From the PDP plot of `rating` and `rutime`, we can see that both variables have positive marginal effect on `gross`. However, note the range of movie box office in two figures are different, `rating` results in a larger variation in terms of predicted value. This suggests that `rating` could explain more variation of movie box office. Therefore, `rating` should be a more important feature compared with `runtime`. And this is consistent with our intuition. 
+From the PDP of `rating` and `rutime`, we can see that both variables have positive marginal effect on `gross`. However, note the range of movie box office in two figures are different, `rating` results in a larger variation in terms of predicted value. This suggests that `rating` could explain more variation of movie box office. Therefore, `rating` should be a more important feature compared with `runtime`. And this is consistent with our intuition. 
 
 ```{r}
 pdp_movie3 = pdp::partial(lr, pred.var = "certificate")
@@ -80,7 +114,7 @@ ggplot(pdp_movie3, aes(fct_reorder(certificate, yhat, .desc = TRUE), yhat)) +
   theme_bw(16)
 ```
 
-The PDP of certificate shows that PG-13 and PG movies tend to have more box office while Not Rated movies tend to have less box office, this is consistent with the results in scatter plot of box office Vs certificate.
+The PDP of certificate shows that PG-13 and PG movies tend to have more box office while Not Rated movies tend to have less box office. This is consistent with the results in scatter plot of box office Vs certificate.
 
 ```{r}
 pdp_movie4 = pdp::partial(lr, pred.var = "genre")
@@ -96,25 +130,25 @@ The PDP of genre shows that animation, action, and horror movies are top three m
 
 
 ```{r}
-pred.ice = function(object, newdata) predict(object, newdata)
-movie.ice = pdp::partial(lr, pred.var = "rating", ice = TRUE, trim.outliers = TRUE)
+#pred.ice = function(object, newdata) predict(object, newdata)
+#movie.ice = pdp::partial(lr, pred.var = "rating", ice = TRUE, trim.outliers = TRUE)
 
-ggplot(movie.ice, aes(rating, yhat))+
-  geom_line(aes(group = yhat.id), lwd = 0.1, alpha = 0.1)+
-  stat_summary(fun = mean, geom = "line", col = "red", size = 1)+
-  theme_bw(16)
+#ggplot(movie.ice, aes(rating, yhat))+
+  #geom_line(aes(group = yhat.id), lwd = 0.1, alpha = 0.1)+
+  #stat_summary(fun = mean, geom = "line", col = "red", size = 1)+
+  #theme_bw(16)
 ```
 
-## Local Interpretable Modelagnostic Explanations (LIME)
+### Local Interpretable Model-agnostic Explanations (LIME)
 
-Because of the high interpretability of linear model, LIME features plots seem to be redundant. But I want to see whether the results obtained from local interpretable model is consistent with the global linear model. 
+Because of the high interpretability of linear model, LIME features plots seem to be redundant. But I want to see whether the results obtained from local interpretable model is consistent with the ordinary linear model. 
 
 ```{r}
 set.seed(5293)
 n = nrow(movie)
 test_index = sample(n, 4)
-test_dat2 = movie[test_index,] |> select(c("year","certificate","runtime","genre","rating","gross"))
-train_dat2 = movie[-test_index,] |> select(c("year","certificate","runtime","genre","rating","gross"))
+test_dat2 = movie[test_index,] |> dplyr::select(c("year","certificate","runtime","genre","rating","gross"))
+train_dat2 = movie[-test_index,] |> dplyr::select(c("year","certificate","runtime","genre","rating","gross"))
 
 lr2 = lm(gross~year+certificate+runtime+genre+rating, data = train_dat)
 
@@ -127,35 +161,34 @@ model_type.lm = function(x, ...) {
 }
 
 explainer = lime(train_dat2, lr2, bin_continuous = TRUE, quantile_bins = FALSE)
-explanation = lime::explain(test_dat2|>select(-gross), explainer, n_features = 5)
+explanation = lime::explain(test_dat2|>dplyr::select(-gross), explainer, n_features = 5)
 
-knitr::kable(explanation |> filter(case == "3649") |> select(c("model_intercept","model_prediction","feature","feature_value","feature_weight","feature_desc","prediction")), digits = 3)
+knitr::kable(explanation |> filter(case == "3649") |> dplyr::select(c("model_intercept","model_prediction","feature","feature_value","feature_weight","feature_desc","prediction")), digits = 3)
 
 plot_features(explanation)
 ```
 
-From the explanation table, we have that the local model is  
-$\hat{y}_{lime} = 96.832 +3.062 \cdot \mathbf{1}_{5.25 < rating <= 7.22}+27.339 \cdot \mathbf{1}_{certificate = PG}+29.846 \cdot \mathbf{1}_{genre = Animation}-62.226 \cdot \mathbf{1}_{runtime <= 232}+0.789 \cdot \mathbf{1}_{year = 2003}$  
-And note that in our original model, the coefficient of `certificatePG` is 59.056, the coefficient of `genreAnimation` is 15.639, the coefficient of `year2003` is
--0.939, the coefficient of `rating` is 14.041, and the coefficient of `runtime` is 0.397. Thus, the local (linear) model is different from our original linear model from quantitative aspect.  
-However, from the LIME plot, we can observe that high rating value will have positive contribution to the prediction and low rating value will have negative contribution. And in terms of direction, the effect of `certificate` and `genre` are both consistent with results from original model. Hence from this respect, the local model has same output as original linear model. 
+From the explanation table, we have that the local model for case 3649 is  
+$\hat{y}_{lime} = 95.999 -31.714 \cdot \mathbf{1}_{3.27 < rating <= 5.25}+28.437 \cdot \mathbf{1}_{certificate = PG}+15.956 \cdot \mathbf{1}_{genre = Action}-60.749 \cdot \mathbf{1}_{runtime <= 232}+1.893 \cdot \mathbf{1}_{year = 1996}$  
+And note that in our original model, the coefficient of `certificatePG` is 59.056, the coefficient of `genreAnimation` is 15.639, the coefficient of `year1996` is -5.303, the coefficient of `rating` is 14.041, and the coefficient of `runtime` is 0.397. Thus, the local (linear) model is different from our original linear model from quantitative aspect.  
+However, from the LIME plot, we can observe that high rating value will have positive contribution to the prediction and low rating value will have negative contribution. And in terms of direction, the effect of `certificate` and `genre` are both consistent with results from original model. Hence in this respect, the local model has same output as original linear model. 
 
 ```{r}
-df = data.frame(cbind(test_dat2$gross-c(43.78083,67.03718,91.82633,19.25572), test_dat2$gross-c(51.83085,84.11489,71.28083,33.32875)))
-colnames(df) = c("lime error", "originalerror")
+df = data.frame(cbind(test_dat2$gross-c(64.004,68.655,49.821,15.394), test_dat2$gross-c(35.316,85.533,43.888,0.522)))
+colnames(df) = c("lime error", "original error")
 df
 ```
 
-The residual table shows that neither outperforms the other one. And both have pretty large errors.
+The residual table shows that our ordinary linear model outperforms the local model. I think this may be related to the motivation of using lime, that is, we want to add interpretability of our original model, which in exchange, sacrificed some accuracy. But this linear model is already highly interpretable, we do not need assistance of lime. 
 
-### Gower Distance
+#### Gower Distance
 
 ```{r}
 set.seed(5293)
 n = nrow(movie)
 test_index = sample(n, 100)
-test_dat3 = movie[test_index,] |> select(c("year","certificate","runtime","genre","rating","gross"))
-train_dat3 = movie[-test_index,] |> select(c("year","certificate","runtime","genre","rating","gross"))
+test_dat3 = movie[test_index,] |> dplyr::select(c("year","certificate","runtime","genre","rating","gross"))
+train_dat3 = movie[-test_index,] |> dplyr::select(c("year","certificate","runtime","genre","rating","gross"))
 
 lr3 = lm(gross~year+certificate+runtime+genre+rating, data = train_dat)
 
@@ -168,7 +201,7 @@ df = test_dat3 |>
   pivot_longer(-c(obs1, pred1), names_to = "obs2", values_to = "gower") |>
   filter(obs1 < obs2) |> 
   mutate(pred2 = predict(lr3, movie[obs2,])) |>
-  select(obs1, obs2, gower, pred1, pred2) |>
+  dplyr::select(obs1, obs2, gower, pred1, pred2) |>
   mutate(diff = abs(pred2 - pred1)) |>
   mutate(total = pred1 + pred2)
 
@@ -177,3 +210,23 @@ ggplot(df, aes(gower, diff)) + geom_point(alpha = 0.8, size = 1) +
 ```
 
 As Gower distance increases, the variance of difference between pairs increases. This indicates that for very different observations, our model sometimes makes different predictions and sometimes makes similar predictions, for very similar observations, our model tend to make similar predictions. From the figure, we can claim that for our linear model, if the Gower distance is less than 0.18, the prediction will be very similar (difference<25).
+
+### Shapley Additive Explanations
+
+For linear model, the shapley value of each feature is merely its coefficient. Hence, we do not need this technique to help interpret the model. 
+
+### Feature Importance
+
+```{r}
+relImportance = calc.relimp(lr, type = "lmg", rela = TRUE) 
+df = data.frame(sort(relImportance$lmg, decreasing=TRUE))
+colnames(df) = "importance"
+df = df|>
+  rownames_to_column("feature")
+ggplot(df, aes(x = importance, y = fct_reorder(feature, importance, .desc = TRUE)))+
+  geom_col(fill = "cornflowerblue")+
+  labs(title = "Feature Importance Plot")+
+  ylab("feature")
+```
+
+The Feature Importance plot shows the relative importance of each feature fed into our linear model. Surprisingly, the most important feature is `certificate` instead of `rating` this is different from conclusion derived from partial dependence plot, that is `rating` is the most important feature as response variable has the most variation when only consider `rating`. 
