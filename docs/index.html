@@ -23,7 +23,7 @@
 <meta name="author" content="Hongwei Zha" />
 
 
-<meta name="date" content="2023-04-24" />
+<meta name="date" content="2023-04-29" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -142,22 +142,22 @@
 <div id="header">
 <h1 class="title">Movie Box Office</h1>
 <p class="author"><em>Hongwei Zha</em></p>
-<p class="date"><em>2023-04-24</em></p>
+<p class="date"><em>2023-04-29</em></p>
 </div>
 <div id="proposal" class="section level1 hasAnchor" number="1">
 <h1><span class="header-section-number">Chapter 1</span> Proposal<a href="index.html#proposal" class="anchor-section" aria-label="Anchor link to header"></a></h1>
 <div id="data" class="section level2 hasAnchor" number="1.1">
 <h2><span class="header-section-number">1.1</span> Data<a href="index.html#data" class="anchor-section" aria-label="Anchor link to header"></a></h2>
-<p>I will use the data extracted from Kaggle: <a href="https://www.kaggle.com/datasets/rajugc/imdb-movies-dataset-based-on-genre" class="uri">https://www.kaggle.com/datasets/rajugc/imdb-movies-dataset-based-on-genre</a></p>
+<p>The data comes from Kaggle: <a href="https://www.kaggle.com/datasets/rajugc/imdb-movies-dataset-based-on-genre" class="uri">https://www.kaggle.com/datasets/rajugc/imdb-movies-dataset-based-on-genre</a>. And the original source is IMDB:<a href="https://www.imdb.com/interfaces/" class="uri">https://www.imdb.com/interfaces/</a>. For simplicity, I do not intend to use all the data, so I just used data from Kaggle.</p>
 </div>
 <div id="modeling-goal" class="section level2 hasAnchor" number="1.2">
 <h2><span class="header-section-number">1.2</span> Modeling Goal<a href="index.html#modeling-goal" class="anchor-section" aria-label="Anchor link to header"></a></h2>
-<p>The main goal would be predicting the box office of a new movie based on its IMDB rating, certificate, genre, run time, casts, and directors. Some concerns about the practicability is that casts and directors contain many names, to simplify it, I decide to only include the top three actors and only one main director. Then I will convert them to dummy variables, i.e., each actor or director as a feature. Also note that, what we want to predict is the ultimate gross box office of the movie, so we can collect the new movie’s rating after it is released for certain time.<br />
+<p>The main goal would be predicting the box office of a new movie based on its IMDB rating, certificate, genre, run time, year, casts, and directors. Some concerns about the practicability is that casts and directors contain many names, to simplify it, I decide to only include the top three actors and only one main director. Then I will convert them to dummy variables, i.e., each actor or director as a feature. Also note that, what we want to predict is the ultimate gross box office of the movie, so we can collect the new movie’s rating after it is released for certain time.<br />
 I am also interested in finding whether people prefer old movies or new released movies. For example, I can calculate the mean ratings of movies in each year and see how the trend looks like.</p>
 </div>
 <div id="models" class="section level2 hasAnchor" number="1.3">
 <h2><span class="header-section-number">1.3</span> Models<a href="index.html#models" class="anchor-section" aria-label="Anchor link to header"></a></h2>
-<p>The first model that I intend to use will be the ordinary linear regression model. An issue would be that the underlying relationship is not linear. So I would implement generalized linear model with a Gamma distribution (or I can do some tests to see what kind of exponential distributions that box office is closet to) as the second, decision tree as the third, and random forest as the fourth model.</p>
+<p>The first model that I intend to use will be the ordinary linear regression model. An issue would be that the underlying relationship is not linear. So I may implement generalized linear model with a Gamma distribution (or I can do some tests to see what kind of exponential distributions that box office is closet to) as the second, decision tree as the third, and random forest as the fourth model.</p>
 
 </div>
 </div>

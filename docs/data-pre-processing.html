@@ -23,7 +23,7 @@
 <meta name="author" content="Hongwei Zha" />
 
 
-<meta name="date" content="2023-04-24" />
+<meta name="date" content="2023-04-29" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -156,7 +156,7 @@
 <code>star</code> – Star of the movie<br />
 <code>star_id</code> – IMDB id of the star<br />
 <code>votes</code> – Number of votes in IMDB website<br />
-<code>gross</code> – Gross Box Office of the movie</p>
+<code>gross</code> – Gross Box Office of the movie in million</p>
 </div>
 <div id="data-summary" class="section level2 hasAnchor" number="2.2">
 <h2><span class="header-section-number">2.2</span> Data Summary<a href="data-pre-processing.html#data-summary" class="anchor-section" aria-label="Anchor link to header"></a></h2>
@@ -171,7 +171,7 @@
 ##  $ director   : chr  &quot;Ryan Coogler&quot; &quot;James Cameron&quot; &quot;Jean-Fran?ois Richet&quot; &quot;Dan Kwan, \nDaniel Scheinert&quot; ...
 ##  $ star       : chr  &quot;Letitia Wright, \nLupita Nyong&#39;o, \nDanai Gurira, \nWinston Duke&quot; &quot;Sam Worthington, \nZoe Saldana, \nSigourney Weaver, \nStephen Lang&quot; &quot;Gerard Butler, \nMike Colter, \nTony Goldwyn, \nYoson An&quot; &quot;Michelle Yeoh, \nStephanie Hsu, \nJamie Lee Curtis, \nKe Huy Quan&quot; ...
 ##  $ gross      : int  NA NA NA NA NA NA NA NA NA NA ...</code></pre>
-<p>As we can note that some variables’ data type does not match our expectation, such as <code>rating</code> should be integer type and <code>certificate</code> should be categorical type. We will fix this by assigning appropriate data type manually. Another noteworthy point is that there are many NA values in <code>gross(in $)</code> variable, which is our response variable. Hence, I decide to visualize the missing rate for each column in my dataset and see if trimming the dataset is needed.</p>
+<p>From the data summary table, note that some variables’ data type does not seem to be reasonable, such as <code>rating</code> should be integer type and <code>certificate</code> should be categorical type. I will fix this by assigning appropriate data type manually. Another noteworthy point is that there are many NA values in <code>gross</code> variable, which is our response variable. This inspires me to visualize the missing rate for each column in the dataset and see if other columns also contains a lot of NA values since this may introduce some problems in model fitting part.</p>
 </div>
 <div id="visualizing-missing-values" class="section level3 hasAnchor" number="2.2.2">
 <h3><span class="header-section-number">2.2.2</span> Visualizing Missing Values<a href="data-pre-processing.html#visualizing-missing-values" class="anchor-section" aria-label="Anchor link to header"></a></h3>
@@ -181,15 +181,14 @@
 (#fig:Missing Plot)Histogram of <code>Sepal.Width</code>
 </p>
 </div>
-<p>Figure<br />
-@ref(fig:Missing Plot)
-shows The missing values in <code>gross</code> variable counts for 93.38% proportion, which is so large. Considering the total number of rows the original dataset has, we still have enough observations to fit models even after deleting those missing values.</p>
+<p>Figure above shows that the missing values in <code>gross</code> variable counts for 93.38% proportion, which is non negligible. And there are also considerably large proportion missing values in <code>year</code> and <code>rating</code> variables. However, since the total number of rows the dataset has is enormous, we still have plenty observations to fit models even after deleting those missing values.</p>
+<p>For simplifying model fitting, we did some variable transformations. First, since each movie can be classified as multiple genres, we only assign the main genre to <code>genre</code> variable. Second, I used similar procedure to handle <code>director</code> variable and found out that there are total of 5297 unique directors. Since the number of levels are so much, it will spent a lot of time to fit models if I include <code>director</code> variable. Hence, I decide to drop this variable and the same reason applies for dropping <code>actor</code> variable.</p>
 </div>
 </div>
 <div id="box-office-vs-genre" class="section level2 hasAnchor" number="2.3">
 <h2><span class="header-section-number">2.3</span> Box Office Vs Genre<a href="data-pre-processing.html#box-office-vs-genre" class="anchor-section" aria-label="Anchor link to header"></a></h2>
 <p><img src="finalproj_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
-<p>We want to see how box office is distributed for different genres. From the plot, it seems that the distribution does not vary a lot from genre to genre. This might indicate that genre is not a good estimator. We will verify this later on in fitting model part.</p>
+<p>We want to see how box office is distributed for different genres. From the plot, it seems that the distribution does not vary a lot from genre to genre, i.e., they all have a long right tail and there are many data points on the left hand side . This might indicate that <code>genre</code> is not a good estimator since movie box office cannot be distinguished from genre to genre. But on the other hand, note that there are no observations for comedy, crime, and drama movies with box office greater than 250 millions but we can find some records for action, adventure, and animation movies with box office larger than 250 millions. Thus, <code>genre</code> may could help to explain some variations in <code>gross</code> variable.</p>
 </div>
 <div id="box-office-vs-rating-certificate" class="section level2 hasAnchor" number="2.4">
 <h2><span class="header-section-number">2.4</span> Box Office Vs Rating &amp; Certificate<a href="data-pre-processing.html#box-office-vs-rating-certificate" class="anchor-section" aria-label="Anchor link to header"></a></h2>
@@ -217,9 +216,9 @@ shows The missing values in <code>gross</code> variable counts for 93.38% propor
 ## 2        13+    4
 ## 3        16+    1
 ## 5         AO    1</code></pre>
-<p>This table shows the number of movies of each certificate. For certificate with count less than 1000, we group them as <code>other</code> type.</p>
+<p>This table shows the number of movies for each certificate. There are total of 23 levels, which is relatively large. And note that the total number of counts for levels other than the top five add up to roughly thousand. Hence, it is reasonable to merge those levels and treat as a new level called other.</p>
 <p><img src="finalproj_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
-<p>We also visualized the relationship between <code>gross</code> and <code>rating</code>. From the plot, linearity seems to be insufficient to explain the relationship between <code>gross</code> and <code>rating</code>. Also note that for movies with the same rating score, PG and PG-13 movies tend to have more box office while Not Rated movies tend to have less box office.</p>
+<p>We also draw the scatter plot of <code>gross</code> versus <code>rating</code> and <code>certificate</code>. For the relationship between <code>gross</code> and <code>rating</code>, in general, movies with high rating seems to have wider range of movie box office while movies with low rating tend to have narrower ranger of movie box office and mainly have low value. Besides, linearity seems to be insufficient to explain as we can see that the fitted line (black line) has a very small slope. As for the relationship between <code>gross</code> and <code>certificate</code>, note that for movies with the same rating score, PG and PG-13 movies tend to have more box office while Not Rated movies tend to have less box office. And in terms of the whole data points, they are highly separable by certificate since more green points are on the top layer, more yellow points are on the middle layer, and more black points are on the bottom layer. Thus, <code>certificate</code> might be a good estimator.</p>
 
 </div>
 </div>

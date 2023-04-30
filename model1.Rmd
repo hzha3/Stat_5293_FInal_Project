@@ -23,7 +23,8 @@ test_dat = movie[-train_index, ]
 lr = lm(gross~year+certificate+runtime+genre+rating, data = train_dat)
 summary(lr)
 ```
-We can read from the summary of the linear model that the R-squared of our model is only 0.2666, which indicates a bad fit. To further examine whether the linearity assumption is hold to some extent, we draw the residual plot as follow. 
+
+We can read from the summary of the linear model that the R-squared of our model on the training set is only 0.2641, which indicates a very bad fit. To further examine whether the linearity assumption is hold, we draw the residual plot as following. 
 
 ### Check Linearity
 
@@ -70,6 +71,7 @@ eval_recap = function(truth, estimate){
 
 eval_recap(test_dat$gross, predict(lr, newdata = test_dat))
 ```
+
 The evaluation table shows the MSE, MAE, and R-Squared value of our model on the test set. All of three criterion indicate that our model had a bad performance. Hence, from the aspect of accuracy, linear model should not be our target model. 
 
 ## Model Interpretation
@@ -102,7 +104,7 @@ ggplot(pdp_movie2, aes(runtime, yhat)) +
   theme_bw(16)
 ```
 
-From the PDP of `rating` and `rutime`, we can see that both variables have positive marginal effect on `gross`. However, note the range of movie box office in two figures are different, `rating` results in a larger variation in terms of predicted value. This suggests that `rating` could explain more variation of movie box office. Therefore, `rating` should be a more important feature compared with `runtime`. And this is consistent with our intuition. 
+Note that the PDP of `rating` and `rutime` are both straight line, this is because in linear model, the relationship between response and each feature is linear. We can also see that both variables have positive marginal effect on `gross`. However, the range of movie box office in two figures are different, `rating` results in a larger variation in terms of predicted value. This suggests that `rating` could explain more variation of movie box office. Therefore, `rating` should be a more important feature compared with `runtime`. And this is consistent with our intuition. 
 
 ```{r}
 pdp_movie3 = pdp::partial(lr, pred.var = "certificate")
@@ -127,17 +129,6 @@ ggplot(pdp_movie4, aes(y = fct_reorder(genre, yhat, .desc = TRUE), x = yhat)) +
 ```
 
 The PDP of genre shows that animation, action, and horror movies are top three most popular types while war, film-noir, and biography are the three types with least audience.
-
-
-```{r}
-#pred.ice = function(object, newdata) predict(object, newdata)
-#movie.ice = pdp::partial(lr, pred.var = "rating", ice = TRUE, trim.outliers = TRUE)
-
-#ggplot(movie.ice, aes(rating, yhat))+
-  #geom_line(aes(group = yhat.id), lwd = 0.1, alpha = 0.1)+
-  #stat_summary(fun = mean, geom = "line", col = "red", size = 1)+
-  #theme_bw(16)
-```
 
 ### Local Interpretable Model-agnostic Explanations (LIME)
 
@@ -168,10 +159,7 @@ knitr::kable(explanation |> filter(case == "3649") |> dplyr::select(c("model_int
 plot_features(explanation)
 ```
 
-From the explanation table, we have that the local model for case 3649 is  
-$\hat{y}_{lime} = 95.999 -31.714 \cdot \mathbf{1}_{3.27 < rating <= 5.25}+28.437 \cdot \mathbf{1}_{certificate = PG}+15.956 \cdot \mathbf{1}_{genre = Action}-60.749 \cdot \mathbf{1}_{runtime <= 232}+1.893 \cdot \mathbf{1}_{year = 1996}$  
-And note that in our original model, the coefficient of `certificatePG` is 59.056, the coefficient of `genreAnimation` is 15.639, the coefficient of `year1996` is -5.303, the coefficient of `rating` is 14.041, and the coefficient of `runtime` is 0.397. Thus, the local (linear) model is different from our original linear model from quantitative aspect.  
-However, from the LIME plot, we can observe that high rating value will have positive contribution to the prediction and low rating value will have negative contribution. And in terms of direction, the effect of `certificate` and `genre` are both consistent with results from original model. Hence in this respect, the local model has same output as original linear model. 
+From the explanation table, we have that the local model for case 3649 is $\hat{y}_{lime} = 95.999 -31.714 \cdot \mathbf{1}_{3.27 < rating <= 5.25}+28.437 \cdot \mathbf{1}_{certificate = PG}+15.956 \cdot \mathbf{1}_{genre = Action}-60.749 \cdot \mathbf{1}_{runtime <= 232}+1.893 \cdot \mathbf{1}_{year = 1996}$. And note that in our original model, the coefficient of `certificatePG` is 58.77324, `genreAction` is baseline and the coefficient of most levels are negative, the coefficient of `year1996` is -5.303, the coefficient of `rating` is 14.253, and the coefficient of `runtime` is 0.394. Thus, the local (linear) model is different from our original linear model from quantitative aspect. However, from the LIME plot, in terms of direction, the effect of `certificate`, `rating`, and `genre` are both consistent with results from original model. Hence from this respect, the local model has same output as original linear model. 
 
 ```{r}
 df = data.frame(cbind(test_dat2$gross-c(64.004,68.655,49.821,15.394), test_dat2$gross-c(35.316,85.533,43.888,0.522)))
@@ -179,7 +167,7 @@ colnames(df) = c("lime error", "original error")
 df
 ```
 
-The residual table shows that our ordinary linear model outperforms the local model. I think this may be related to the motivation of using lime, that is, we want to add interpretability of our original model, which in exchange, sacrificed some accuracy. But this linear model is already highly interpretable, we do not need assistance of lime. 
+The residual table gives the residual of local model and original model on the 4 data points used in LIME. We can see that our ordinary linear model outperforms the local model. I think this may be related to the motivation of using lime, that is, we want to add interpretability of our original model, which in exchange, sacrificed some accuracy. To be more specific, by using lime, we create some fake data points around the data point that we want to predict, and we also used a black box model to estimate those fake points. Hence, those two steps might be the reason why we get an even worse prediction than ordinary linear model does. However, linear model is already highly interpretable, we might only need assistance of lime for less interpretable models.  
 
 #### Gower Distance
 
@@ -209,7 +197,7 @@ ggplot(df, aes(gower, diff)) + geom_point(alpha = 0.8, size = 1) +
   ggtitle("Difference in prediction vs. Gower distance")
 ```
 
-As Gower distance increases, the variance of difference between pairs increases. This indicates that for very different observations, our model sometimes makes different predictions and sometimes makes similar predictions, for very similar observations, our model tend to make similar predictions. From the figure, we can claim that for our linear model, if the Gower distance is less than 0.18, the prediction will be very similar (difference<25).
+As Gower distance increases, the variance of difference between pairs increases. This indicates that: for very different observations, our model sometimes makes very different predictions and sometimes makes similar predictions; for very similar observations, our model tend to consistently make similar predictions. From the figure, we can claim that for our linear model, if the Gower distance is less than 0.18, the prediction will be very similar (difference<25).
 
 ### Shapley Additive Explanations
 
@@ -229,4 +217,4 @@ ggplot(df, aes(x = importance, y = fct_reorder(feature, importance, .desc = TRUE
   ylab("feature")
 ```
 
-The Feature Importance plot shows the relative importance of each feature fed into our linear model. Surprisingly, the most important feature is `certificate` instead of `rating` this is different from conclusion derived from partial dependence plot, that is `rating` is the most important feature as response variable has the most variation when only consider `rating`. 
+The Feature Importance plot shows the relative importance of each feature fed into our linear model. Surprisingly, the most important feature is `certificate` instead of `rating` this is different from conclusion derived from partial dependence plot, that is `rating` is the most important feature as `rating` caused the most variation in response variable. 

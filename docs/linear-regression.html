@@ -23,7 +23,7 @@
 <meta name="author" content="Hongwei Zha" />
 
 
-<meta name="date" content="2023-04-24" />
+<meta name="date" content="2023-04-29" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -296,11 +296,11 @@
 ## Residual standard error: 54.23 on 16693 degrees of freedom
 ## Multiple R-squared:  0.2641, Adjusted R-squared:  0.2583 
 ## F-statistic: 45.05 on 133 and 16693 DF,  p-value: &lt; 2.2e-16</code></pre>
-<p>We can read from the summary of the linear model that the R-squared of our model is only 0.2666, which indicates a bad fit. To further examine whether the linearity assumption is hold to some extent, we draw the residual plot as follow.</p>
+<p>We can read from the summary of the linear model that the R-squared of our model on the training set is only 0.2641, which indicates a very bad fit. To further examine whether the linearity assumption is hold, we draw the residual plot as following.</p>
 </div>
 <div id="check-linearity" class="section level3 hasAnchor" number="3.1.2">
 <h3><span class="header-section-number">3.1.2</span> Check Linearity<a href="linear-regression.html#check-linearity" class="anchor-section" aria-label="Anchor link to header"></a></h3>
-<p><img src="finalproj_files/figure-html/unnamed-chunk-14-1.png" width="576" /></p>
+<p><img src="finalproj_files/figure-html/unnamed-chunk-13-1.png" width="576" /></p>
 <p>From the Residual Plot, we can observe that majority points are lying in a line with negative slope. This might indicate that our model will over-estimate certain types movies’ box office and under-estimate some other types. That is, some common characteristics of data with high fitted value contributes a lot to its over all prediction and vice versa for data with low predicted value.<br />
 Also note that we have negative fitted value, which obviously
 does not make sense in reality. By checking the dataset, we have no negative values in <code>gross</code> variable. This excludes the possibility that negative fitted values come from dataset. Hence, this is another factor supporting that a linear model might not be appropriate.</p>
@@ -317,12 +317,12 @@ does not make sense in reality. By checking the dataset, we have no negative val
 <div id="partial-dependence-plot" class="section level3 hasAnchor" number="3.3.1">
 <h3><span class="header-section-number">3.3.1</span> Partial Dependence Plot<a href="linear-regression.html#partial-dependence-plot" class="anchor-section" aria-label="Anchor link to header"></a></h3>
 <p>Next, we want to explore the marginal effect of <code>rating</code>, <code>runtime</code>, <code>certificate</code>, and <code>genre</code> on predicted value.</p>
+<p><img src="finalproj_files/figure-html/unnamed-chunk-15-1.png" width="672" /></p>
 <p><img src="finalproj_files/figure-html/unnamed-chunk-16-1.png" width="672" /></p>
+<p>Note that the PDP of <code>rating</code> and <code>rutime</code> are both straight line, this is because in linear model, the relationship between response and each feature is linear. We can also see that both variables have positive marginal effect on <code>gross</code>. However, the range of movie box office in two figures are different, <code>rating</code> results in a larger variation in terms of predicted value. This suggests that <code>rating</code> could explain more variation of movie box office. Therefore, <code>rating</code> should be a more important feature compared with <code>runtime</code>. And this is consistent with our intuition.</p>
 <p><img src="finalproj_files/figure-html/unnamed-chunk-17-1.png" width="672" /></p>
-<p>From the PDP of <code>rating</code> and <code>rutime</code>, we can see that both variables have positive marginal effect on <code>gross</code>. However, note the range of movie box office in two figures are different, <code>rating</code> results in a larger variation in terms of predicted value. This suggests that <code>rating</code> could explain more variation of movie box office. Therefore, <code>rating</code> should be a more important feature compared with <code>runtime</code>. And this is consistent with our intuition.</p>
-<p><img src="finalproj_files/figure-html/unnamed-chunk-18-1.png" width="672" /></p>
 <p>The PDP of certificate shows that PG-13 and PG movies tend to have more box office while Not Rated movies tend to have less box office. This is consistent with the results in scatter plot of box office Vs certificate.</p>
-<p><img src="finalproj_files/figure-html/unnamed-chunk-19-1.png" width="672" /></p>
+<p><img src="finalproj_files/figure-html/unnamed-chunk-18-1.png" width="672" /></p>
 <p>The PDP of genre shows that animation, action, and horror movies are top three most popular types while war, film-noir, and biography are the three types with least audience.</p>
 </div>
 <div id="local-interpretable-model-agnostic-explanations-lime" class="section level3 hasAnchor" number="3.3.2">
@@ -397,21 +397,18 @@ does not make sense in reality. By checking the dataset, we have no negative val
 </tr>
 </tbody>
 </table>
-<p><img src="finalproj_files/figure-html/unnamed-chunk-21-1.png" width="672" /></p>
-<p>From the explanation table, we have that the local model for case 3649 is<br />
-<span class="math inline">\(\hat{y}_{lime} = 95.999 -31.714 \cdot \mathbf{1}_{3.27 &lt; rating &lt;= 5.25}+28.437 \cdot \mathbf{1}_{certificate = PG}+15.956 \cdot \mathbf{1}_{genre = Action}-60.749 \cdot \mathbf{1}_{runtime &lt;= 232}+1.893 \cdot \mathbf{1}_{year = 1996}\)</span><br />
-And note that in our original model, the coefficient of <code>certificatePG</code> is 59.056, the coefficient of <code>genreAnimation</code> is 15.639, the coefficient of <code>year1996</code> is -5.303, the coefficient of <code>rating</code> is 14.041, and the coefficient of <code>runtime</code> is 0.397. Thus, the local (linear) model is different from our original linear model from quantitative aspect.<br />
-However, from the LIME plot, we can observe that high rating value will have positive contribution to the prediction and low rating value will have negative contribution. And in terms of direction, the effect of <code>certificate</code> and <code>genre</code> are both consistent with results from original model. Hence in this respect, the local model has same output as original linear model.</p>
+<p><img src="finalproj_files/figure-html/unnamed-chunk-19-1.png" width="672" /></p>
+<p>From the explanation table, we have that the local model for case 3649 is <span class="math inline">\(\hat{y}_{lime} = 95.999 -31.714 \cdot \mathbf{1}_{3.27 &lt; rating &lt;= 5.25}+28.437 \cdot \mathbf{1}_{certificate = PG}+15.956 \cdot \mathbf{1}_{genre = Action}-60.749 \cdot \mathbf{1}_{runtime &lt;= 232}+1.893 \cdot \mathbf{1}_{year = 1996}\)</span>. And note that in our original model, the coefficient of <code>certificatePG</code> is 58.77324, <code>genreAction</code> is baseline and the coefficient of most levels are negative, the coefficient of <code>year1996</code> is -5.303, the coefficient of <code>rating</code> is 14.253, and the coefficient of <code>runtime</code> is 0.394. Thus, the local (linear) model is different from our original linear model from quantitative aspect. However, from the LIME plot, in terms of direction, the effect of <code>certificate</code>, <code>rating</code>, and <code>genre</code> are both consistent with results from original model. Hence from this respect, the local model has same output as original linear model.</p>
 <pre><code>##   lime error original error
 ## 1  -44.65243      -15.96443
 ## 2  119.05043      102.17243
 ## 3  -32.52011      -26.58711
 ## 4  -12.21556        2.65644</code></pre>
-<p>The residual table shows that our ordinary linear model outperforms the local model. I think this may be related to the motivation of using lime, that is, we want to add interpretability of our original model, which in exchange, sacrificed some accuracy. But this linear model is already highly interpretable, we do not need assistance of lime.</p>
+<p>The residual table gives the residual of local model and original model on the 4 data points used in LIME. We can see that our ordinary linear model outperforms the local model. I think this may be related to the motivation of using lime, that is, we want to add interpretability of our original model, which in exchange, sacrificed some accuracy. To be more specific, by using lime, we create some fake data points around the data point that we want to predict, and we also used a black box model to estimate those fake points. Hence, those two steps might be the reason why we get an even worse prediction than ordinary linear model does. However, linear model is already highly interpretable, we might only need assistance of lime for less interpretable models.</p>
 <div id="gower-distance" class="section level4 hasAnchor" number="3.3.2.1">
 <h4><span class="header-section-number">3.3.2.1</span> Gower Distance<a href="linear-regression.html#gower-distance" class="anchor-section" aria-label="Anchor link to header"></a></h4>
-<p><img src="finalproj_files/figure-html/unnamed-chunk-23-1.png" width="672" /></p>
-<p>As Gower distance increases, the variance of difference between pairs increases. This indicates that for very different observations, our model sometimes makes different predictions and sometimes makes similar predictions, for very similar observations, our model tend to make similar predictions. From the figure, we can claim that for our linear model, if the Gower distance is less than 0.18, the prediction will be very similar (difference&lt;25).</p>
+<p><img src="finalproj_files/figure-html/unnamed-chunk-21-1.png" width="672" /></p>
+<p>As Gower distance increases, the variance of difference between pairs increases. This indicates that: for very different observations, our model sometimes makes very different predictions and sometimes makes similar predictions; for very similar observations, our model tend to consistently make similar predictions. From the figure, we can claim that for our linear model, if the Gower distance is less than 0.18, the prediction will be very similar (difference&lt;25).</p>
 </div>
 </div>
 <div id="shapley-additive-explanations" class="section level3 hasAnchor" number="3.3.3">
@@ -420,8 +417,8 @@ However, from the LIME plot, we can observe that high rating value will have pos
 </div>
 <div id="feature-importance" class="section level3 hasAnchor" number="3.3.4">
 <h3><span class="header-section-number">3.3.4</span> Feature Importance<a href="linear-regression.html#feature-importance" class="anchor-section" aria-label="Anchor link to header"></a></h3>
-<p><img src="finalproj_files/figure-html/unnamed-chunk-24-1.png" width="672" /></p>
-<p>The Feature Importance plot shows the relative importance of each feature fed into our linear model. Surprisingly, the most important feature is <code>certificate</code> instead of <code>rating</code> this is different from conclusion derived from partial dependence plot, that is <code>rating</code> is the most important feature as response variable has the most variation when only consider <code>rating</code>.</p>
+<p><img src="finalproj_files/figure-html/unnamed-chunk-22-1.png" width="672" /></p>
+<p>The Feature Importance plot shows the relative importance of each feature fed into our linear model. Surprisingly, the most important feature is <code>certificate</code> instead of <code>rating</code> this is different from conclusion derived from partial dependence plot, that is <code>rating</code> is the most important feature as <code>rating</code> caused the most variation in response variable.</p>
 
 </div>
 </div>
