@@ -6,17 +6,18 @@ library(rpart.plot)
 library(fastshap)
 ```
 
-## Model Fitting
-
 ## Model Visualization
 
 ```{r}
 #From: https://www.statology.org/plot-decision-tree-in-r/#:~:text=In%20machine%20learning%2C%20a%20decision,plot%20package.
+set.seed(5293)
 tree = rpart(gross~year+certificate+runtime+genre+rating, data = train_dat, control=rpart.control(cp=0))
 best = tree$cptable[which.min(tree$cptable[,"xerror"]),"CP"]
 pruned_tree = prune(tree, cp=best)
 rpart.plot(pruned_tree, type = 0, fallen.leaves = FALSE)
+(R_Squared = 1- sum((train_dat$gross-predict(pruned_tree))^2) / sum((train_dat$gross-mean(train_dat$gross))^2))
 ```
+
 The plot visualized our regression tree model. Since the size of the tree is so large, visualization does not work here. But we can find out each node's information and splitting rule by checking the summary of tree model. 
 
 ## Model Evaluation
@@ -69,7 +70,7 @@ ggplot(pdp_movie3, aes(fct_reorder(certificate, yhat, .desc = TRUE), yhat)) +
   theme_bw(16)
 ```
 
-The PDP of certificate in tree model shows that PG and PG-13 movies tend to have more box office while Not Rated movies tend to have less box office. This is similar to the results obtained from linear model.
+The PDP of `certificate` in tree model shows that PG and PG-13 movies tend to have more box office while Not Rated movies tend to have less box office. This is similar to the results obtained from linear model.
 
 ```{r}
 pdp_movie4 = pdp::partial(pruned_tree, pred.var = "genre")
@@ -81,7 +82,7 @@ ggplot(pdp_movie4, aes(y = fct_reorder(genre, yhat, .desc = TRUE), x = yhat)) +
   theme_bw(16)
 ```
 
-The PDP of genre in tree model shows that action, animation, and horror movies are top three most popular types while drama, biography, and romance are the three types with least audience. In general, this is consistent with the conclusion by using linear model. But note that, the difference between each genre in tree model are far less than the difference in linear model. This indicates that `genre` in tree model is not as much important as it is in linear model (later by drawing the feature importance plot, we find the `genre` is least important in tree model while it is the second important in linear model).
+The PDP of `genre` in tree model shows that action, animation, and horror movies are top three most popular types while drama, biography, and romance are the three types with least audience. In general, this is consistent with the conclusion by using linear model. But note that, the difference between each genre in tree model are far less than the difference in linear model. This indicates that `genre` in tree model is not as much important as it is in linear model (later by drawing the feature importance plot, we find the `genre` is least important in tree model while it is the second important in linear model).
 
 ### Local Interpretable Model-agnostic Explanations (LIME)
 
@@ -114,7 +115,7 @@ colnames(df) = c("lime error", "original error")
 df
 ```
 
-The residual table shows that our tree model also outperforms the local model. Also note that the error for each case in tree model is also less than it in linear model. 
+The residual table shows that our tree model also outperforms its local model. Also note that the error for each case in tree model is also less than it in linear model. 
 
 #### Gower Distance
 
@@ -145,6 +146,7 @@ From the plot, we still have that as Gower distance increases, the variance of d
 ### Shapley Additive Explanations
 
 ```{r}
+set.seed(5293)
 pred <- function(model, newdata) {
   predict(model, newdata = newdata)
 }
@@ -181,7 +183,8 @@ df = df|>
   rownames_to_column("feature")
 df$importance = df$importance / sum(df$importance)
 ggplot(df, aes(x = importance, y = fct_reorder(feature, importance, .desc = TRUE)))+
-  geom_col(fill = "cornflowerblue")+
+  geom_point()+
+  #geom_col(fill = "cornflowerblue")+
   labs(title = "Feature Importance Plot")+
   ylab("feature")
 ```

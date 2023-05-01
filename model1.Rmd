@@ -24,7 +24,7 @@ lr = lm(gross~year+certificate+runtime+genre+rating, data = train_dat)
 summary(lr)
 ```
 
-We can read from the summary of the linear model that the R-squared of our model on the training set is only 0.2641, which indicates a very bad fit. To further examine whether the linearity assumption is hold, we draw the residual plot as following. 
+We can read from the summary of the linear model that the R-squared of our model on the training set is only 0.2614, which indicates a very bad fit. To further examine whether the linearity assumption is hold, we draw the residual plot as following. 
 
 ### Check Linearity
 
@@ -159,10 +159,10 @@ knitr::kable(explanation |> filter(case == "3649") |> dplyr::select(c("model_int
 plot_features(explanation)
 ```
 
-From the explanation table, we have that the local model for case 3649 is $\hat{y}_{lime} = 95.999 -31.714 \cdot \mathbf{1}_{3.27 < rating <= 5.25}+28.437 \cdot \mathbf{1}_{certificate = PG}+15.956 \cdot \mathbf{1}_{genre = Action}-60.749 \cdot \mathbf{1}_{runtime <= 232}+1.893 \cdot \mathbf{1}_{year = 1996}$. And note that in our original model, the coefficient of `certificatePG` is 58.77324, `genreAction` is baseline and the coefficient of most levels are negative, the coefficient of `year1996` is -5.303, the coefficient of `rating` is 14.253, and the coefficient of `runtime` is 0.394. Thus, the local (linear) model is different from our original linear model from quantitative aspect. However, from the LIME plot, in terms of direction, the effect of `certificate`, `rating`, and `genre` are both consistent with results from original model. Hence from this respect, the local model has same output as original linear model. 
+From the explanation table, we have that the local model for case 3649 is $\hat{y}_{lime} = 93.333 -31.264 \cdot \mathbf{1}_{3.27 < rating <= 5.25}+27.663 \cdot \mathbf{1}_{certificate = PG}+16.098 \cdot \mathbf{1}_{genre = Action}-58.298 \cdot \mathbf{1}_{runtime <= 232}-2.133 \cdot \mathbf{1}_{year = 1996}$. And note that in our original model, the coefficient of `certificatePG` is 58.252, `genreAction` is baseline and the coefficient of most levels are negative, the coefficient of `year1996` is 13.818, the coefficient of `rating` is 14.169, and the coefficient of `runtime` is 0.387. Thus, the local (linear) model is different from our original linear model from quantitative aspect. However, from the LIME plot, in terms of direction, the effect of `certificate` and `genre` are both consistent with results from original model. Hence from this respect, the local model has same output as original linear model. 
 
 ```{r}
-df = data.frame(cbind(test_dat2$gross-c(64.004,68.655,49.821,15.394), test_dat2$gross-c(35.316,85.533,43.888,0.522)))
+df = data.frame(cbind(test_dat2$gross-c(62.140,69.490,45.399,16.403), test_dat2$gross-c(35.556,84.927,43.805,0.539)))
 colnames(df) = c("lime error", "original error")
 df
 ```
@@ -212,7 +212,8 @@ colnames(df) = "importance"
 df = df|>
   rownames_to_column("feature")
 ggplot(df, aes(x = importance, y = fct_reorder(feature, importance, .desc = TRUE)))+
-  geom_col(fill = "cornflowerblue")+
+  geom_point()+
+  #geom_col(fill = "cornflowerblue")+
   labs(title = "Feature Importance Plot")+
   ylab("feature")
 ```

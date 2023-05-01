@@ -1,2 +1,19 @@
 # Reflections
 
+## Takeaways
+
+After implementing the proposed three models, I compared them from both accuracy and interpretability perspective. As we expected, linear model has the least R-Squared value on test set but is the most interpretable model; decision tree improved the R-Squared value on test set to a large extent while does not sacrifice too much interpretability; random forest model has the largest R-Squared value on test set but does not improve a lot compared with decision tree, and it is the least interpretable model. Considering the trade off between accuracy and interpretability, I might choose decision tree as target model.
+
+I also learned how to use some techniques to help to interpret models, such as PDP, LIME, and SHAP. Even for black box model such as random forest, we can get a sense of how it comes up with its prediction by using the above methods. 
+
+Besides, I also find that different models sometimes will result in conflicting interpretations: such as the direction of the effect of some features. This provides an alternative way to choose model. For example, before fitting models, we may have an expectation for the direction of some features by the common sense, and if we find the model gives opposite result, we may consider to not choose it. 
+
+Finally, I find that when applying PDP, LIME, and SHAP to a more complex model, I could get more insights compared with what I can infer when doing the same thing but use a simpler model.
+
+## Limitation and Future Direction
+
+My data set contains movies from 1930s to 2020s, hence many other factors may influence the movie box office, such as inflation, improvement of life quality, and even the most recent pandemic. Thus, I should do more exploratory analysis in terms of `year` variable to see if I can find any patterns and then may consider dividing the data set more properly.  
+
+Besides, I did not do too much on parameter tuning and model selection when fitting models. So maybe I can fit a linear model with better performance by adding some interaction terms or doing some variable transformations.  
+
+Finally, I only know how to use PDP, LIME, and SHAP, but is not very clear about more theoretical part such as the mathematics algorithm behind those methods. Hence, I could not answer questions like why LIME and SHAP give different interpretations. This could be something that worth to explore more in the future. 

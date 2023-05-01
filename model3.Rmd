@@ -1,1 +1,182 @@
 # Random Forest
+
+```{r}
+library(randomForest)
+```
+
+## Model Fitting
+
+```{r}
+set.seed(5293)
+rf = randomForest(gross~year+certificate+runtime+genre+rating, data = train_dat, importance = TRUE)
+rf
+```
+
+We can read from the information of random forest model that the R-Squared value on the training set is 0.6224, which is less than the R-Squared value of tree model on the training set 0.7757, but is larger than the R-Squared value of linear model on the training set 0.2641. However, considering the tree model tend to be overfitting, I should compare their performance on the test set.  
+
+## Model Evaluation
+
+```{r}
+eval_recap(test_dat$gross, predict(rf, newdata = test_dat))
+```
+
+The evaluation table shows random forest's performance on the test set. Random forest has slightly larger R-Squared value than tree model and much larger R-Squared value than linear model. But since the R-Squared value only increased from 0.5838 to 0.6163, I do not think random forest and tree model has very different performance. 
+
+## Model Interpretation
+
+### Partial Dependence Plot
+
+```{r}
+pdp_movie1 = pdp::partial(rf, pred.var = "rating", trim.outliers = TRUE)
+
+ggplot(pdp_movie1, aes(rating, yhat)) +
+  geom_line(lwd = 2)+
+  geom_rug(data = train_dat |> filter(rating < max(pdp_movie1$rating) & rating > min(pdp_movie1$rating)), aes(rating), inherit.aes = FALSE, alpha = .5, color = "black") +
+  #geom_smooth(data = movie |> filter(rating < max(pdp_movie1$rating) & rating > min(pdp_movie1$rating)), aes(rating, gross), se = FALSE) +
+  #geom_point(data = movie |> filter(rating < max(pdp_movie1$rating) & rating > min(pdp_movie1$rating)), aes(rating, gross), size = .75, color = "blue", alpha = .25)+
+  ylab("movie box office") +
+  theme_bw(16)
+```
+
+Again the PDP of rating shows that the overall trend is the same as PDP in linear model and tree model: as `rating` goes up, predicted movie box office rises. However, we can note that the range of movie box office is much larger than the range of movie box office in linear and tree model. This shows that `rating` is much more important in random forest than as it is in linear and tree model. And this is what I expected since intuitively, high quality movies will attract more people to see. 
+
+```{r}
+pdp_movie2 = pdp::partial(rf, pred.var = "runtime",trim.outliers = TRUE)
+
+ggplot(pdp_movie2, aes(runtime, yhat)) +
+  geom_line(lwd = 2)+
+  geom_rug(data = train_dat |> filter(runtime < max(pdp_movie2$runtime) & runtime > min(pdp_movie2$runtime)), aes(runtime), inherit.aes = FALSE, alpha = .5, color = "black")+
+  #geom_smooth(data = movie |> filter(runtime < max(pdp_movie2$runtime) & runtime > min(pdp_movie2$runtime)), aes(runtime, gross), se = FALSE) +
+  #geom_point(data = movie |> filter(runtime < max(pdp_movie2$runtime) & runtime > min(pdp_movie2$runtime)), aes(runtime, gross), size = .75, color = "blue", alpha = .25)+
+  ylab("movie box office") +
+  theme_bw(16)
+```
+
+The PDP of `runtime` in random forest leads to similar conclusion: movie with longer run time tend to have more box office. But note that the range of box office is almost a half of it in `rating` part, this suggests that `runtime` is far less important than `rating` in random forest model. We did not observe this difference in tree model and we indeed observed a little difference in linear model but it is not obvious as it is in random forest model. In my opinion, I support the conclusion that `rating` is much more important than `runtime` since length of a movie is never a deterministic factor of  whether it is a good or bad movie, hence less impact on the movie box office. 
+
+```{r}
+pdp_movie3 = pdp::partial(rf, pred.var = "certificate")
+
+ggplot(pdp_movie3, aes(fct_reorder(certificate, yhat, .desc = TRUE), yhat)) +
+  geom_col(fill = "cornflowerblue")+
+  ylab("movie box office") +
+  xlab("certificate")+
+  theme_bw(16)
+```
+
+The PDP of `certificate` in random forest model shows that PG-13 and PG movies tend to have more box office while Not Rated movies tend to have less box office. This is similar to the results obtained from linear and tree model.
+
+```{r}
+pdp_movie4 = pdp::partial(rf, pred.var = "genre")
+
+ggplot(pdp_movie4, aes(y = fct_reorder(genre, yhat, .desc = TRUE), x = yhat)) +
+  geom_col(fill = "cornflowerblue")+
+  xlab("movie box office") +
+  ylab("genre")+
+  theme_bw(16)
+```
+
+The PDP of `genre` in random forest model shows that animation, action, and adventure movies are top three most popular types while drama, biography, and romance are the three types with least audience. This is consistent with the conclusion obtained from linear and tree model. And in terms of the difference between each genre, the plot is more like what we observed in tree model part.
+
+### Local Interpretable Model-agnostic Explanations (LIME)
+
+```{r}
+rf2 = randomForest(gross~year+certificate+runtime+genre+rating, data = train_dat2)
+
+predict_model.randomForest = function(x, newdata, ...) {
+  data.frame(predict(x, newdata = newdata))
+}
+
+model_type.randomForest = function(x, ...) {
+  return("regression")
+}
+
+explainer = lime(train_dat2, rf2, bin_continuous = TRUE, quantile_bins = FALSE)
+explanation = lime::explain(test_dat2|>dplyr::select(-gross), explainer, n_features = 5)
+
+knitr::kable(explanation |> filter(case == "3649") |> dplyr::select(c("model_intercept","model_prediction","feature","feature_value","feature_weight","feature_desc","prediction")), digits = 3)
+
+plot_features(explanation)
+```
+
+From the explanation table, we have that the local model for case 3649 is $\hat{y}_{lime} = 77.399 -12.144 \cdot \mathbf{1}_{3.27 < rating <= 5.25}+26.044 \cdot \mathbf{1}_{certificate = PG}+19.739 \cdot \mathbf{1}_{genre = Action}-49.789 \cdot \mathbf{1}_{runtime <= 232}+3.814 \cdot \mathbf{1}_{year = 1996}$. By doing comparison with the results from linear and tree model, we find that in terms of direction, linear model and random forest give the same interpretation for case 3649; in terms of magnitude, three models generated pairwise different local models. And we can also find some common place resembled by all three models: `runtime` = PG and `genre` = Action has similar scale positive contribution in all three models.
+
+```{r}
+df = data.frame(cbind(test_dat2$gross-c(58.163,61.741,65.063,21.839), test_dat2$gross-c(27.123,111.278,25.311,10.263)))
+colnames(df) = c("lime error", "original error")
+df
+```
+
+The residual table shows that our random forest model also outperforms its local model. Also note that random forest makes slightly less error than tree model did for case 6155 and case 3649, and make larger error for case 10 and case 4464. This supports the idea that random forest model does not have much better performance than tree model in terms of accuracy. 
+
+#### Gower Distance
+
+```{r}
+rf3 = randomForest(gross~year+certificate+runtime+genre+rating, data = train_dat3)
+
+df = test_dat3 |>
+  cluster::daisy() |>
+  as.matrix() |>
+  as.data.frame() |>
+  rownames_to_column("obs1") |>
+  mutate(pred1 = predict(rf3, movie[obs1,])) |>
+  pivot_longer(-c(obs1, pred1), names_to = "obs2", values_to = "gower") |>
+  filter(obs1 < obs2) |> 
+  mutate(pred2 = predict(rf3, movie[obs2,])) |>
+  dplyr::select(obs1, obs2, gower, pred1, pred2) |>
+  mutate(diff = abs(pred2 - pred1)) |>
+  mutate(total = pred1 + pred2)
+
+ggplot(df, aes(gower, diff)) + geom_point(alpha = 0.8, size = 1) +
+  ggtitle("Difference in prediction vs. Gower distance")
+```
+
+Again we read from the plot that as Gower distance increases, the variance of difference between pairs increases. And note that the range of difference is similar to the range obtained in linear model, and it is about a half of the range get in tree model. As I mentioned in tree model part, I think more variance makes more sense in real situation, thus maybe random forest does not do as well as tree model for this regard. 
+
+### Shapley Additive Explanations
+
+```{r}
+set.seed(5293)
+pred <- function(model, newdata) {
+  predict(model, newdata = newdata)
+}
+
+shap_values = fastshap::explain(
+  rf2, 
+  X = train_dat2,           
+  feature_names = colnames(train_dat |> dplyr::select(c("rating","runtime","certificate","genre","year"))),
+  pred_wrapper = pred, 
+  nsim = 5,
+  newdata = test_dat2
+)
+
+df = as.data.frame(shap_values) |>
+    mutate(pred = predict(rf2, test_dat2)) |>
+    mutate(case = c("6155","10","3649","4464"))|>
+    pivot_longer(-c(case, pred), names_to = "var", values_to = "shap_value")
+
+ggplot(df, aes(x = shap_value, y = reorder(var, abs(shap_value))))+
+  geom_col(aes(fill = case), position = "dodge")+
+  ylab("") +
+  theme_bw(12) +
+  theme(panel.grid.major.y = element_blank(), legend.position = "bottom")
+```
+
+Since case 10 has the most predicted value and case 4464 has the least predicted value in random forest model, we focus on these two cases. From the SHAP plot,  `runtime` and `rating` contribute majority of the difference between mean `gross` and prediction of case 10; `year` is a main factor caused the low prediction for case 4464. This is basically the same as what we derived from tree model. Then, comparing the interpretation provided by SHAP and by LIME, again, they are not consistent with each other for some features. Still taking case 10 as an example, LIME implies that `runtime` has a negative effect on predicted value while SHAP indicates that `runtime` has a positive effect. Another point that I want to mention is that if the Shapley value seem to have some randomness, i.e., if I do not fix a seed, every time I run the code, I get different SHAP plot. 
+
+### Feature Importance
+
+```{r}
+df = data.frame(rf$importance[,1])
+colnames(df) = "importance"
+df = df|>
+  rownames_to_column("feature")
+df$importance = df$importance / sum(df$importance)
+ggplot(df, aes(x = importance, y = fct_reorder(feature, importance, .desc = TRUE)))+
+  geom_point()+
+  #geom_col(fill = "cornflowerblue")+
+  labs(title = "Feature Importance Plot")+
+  ylab("feature")
+```
+
+The feature importance plot shows that `certificate` is the most important feature while `year` is the least important feature. This seems to be not consistent with result obtained from partial dependence plot. For example, from PDP, `rating` is more important than `runtime` and `certificate` as it caused more variation in movie box office.  And we also note that the feature importance in three models are different from each other no matter using PDP or some other methods. But in terms of percentage, I think `rating`'s importance does not change a lot from model to model. 

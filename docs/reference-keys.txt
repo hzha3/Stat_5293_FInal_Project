@@ -21,7 +21,6 @@ gower-distance
 shapley-additive-explanations
 feature-importance
 decision-tree
-model-fitting-1
 model-visualization
 model-evaluation-1
 model-interpretation-1
@@ -31,4 +30,14 @@ gower-distance-1
 shapley-additive-explanations-1
 feature-importance-1
 random-forest
+model-fitting-1
+model-evaluation-2
+model-interpretation-2
+partial-dependence-plot-2
+local-interpretable-model-agnostic-explanations-lime-2
+gower-distance-2
+shapley-additive-explanations-2
+feature-importance-2
 reflections
+takeaways
+limitation-and-future-direction

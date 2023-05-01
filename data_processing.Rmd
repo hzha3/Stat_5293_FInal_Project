@@ -7,6 +7,7 @@ library(stringr)
 library(dplyr)
 library(tidyverse)
 library(ggplot2)
+library(forcats)
 ```
 
 ```{r}
@@ -118,6 +119,8 @@ movie$actor3 = actor3_list
 movie = select(movie, -star)
 movie = na.omit(movie)
 rownames(movie) <- 1:nrow(movie) 
+
+movie$year = fct_lump(movie$year, 52)
 ```
 
 For simplifying model fitting, we did some variable transformations. First, since each movie can be classified as multiple genres, we only assign the main genre to `genre` variable. Second, I used similar procedure to handle `director` variable and found out that there are total of 5297 unique directors. Since the number of levels are so much, it will spent a lot of time to fit models if I include `director` variable. Hence, I decide to drop this variable and the same reason applies for dropping `actor` variable.   
